@@ -10,6 +10,7 @@ export default function FormProcessor() {
   const [fieldMapping, setFieldMapping] = useState({});
   const [filledForm, setFilledForm] = useState(null);
   const [selectedFormat, setSelectedFormat] = useState('excel');
+  const [previewType, setPreviewType] = useState('field-value');
 
   useEffect(() => {
     console.log('Dados do Excel:', excelData);
@@ -17,10 +18,6 @@ export default function FormProcessor() {
     console.log('Mapeamento de campos:', fieldMapping);
     console.log('Formulário preenchido:', filledForm);
   }, [excelData, formTemplate, fieldMapping, filledForm]);
-
-
-
-  // ... (estados e useEffect)
 
   const handleExcelUpload = (e) => {
     const file = e.target.files[0];
@@ -128,21 +125,35 @@ export default function FormProcessor() {
     console.log('Formulário preenchido:', filledSheet);
   };
 
-
-
-
-  
-  const renderExcelPreview = () => {
+  const renderFieldValuePreview = () => {
     if (!filledForm) return null;
     
+    const tableData = Object.entries(filledForm).map(([key, value]) => {
+      const match = key.match(/([A-Z]+)(\d+)/);
+      const [column, row] = match ? match.slice(1) : [key, ''];
+      return {
+        ref: key,
+        column: column,
+        value: value.v || ''
+      };
+    });
+  
     return (
       <div className="bg-white shadow-lg rounded-lg p-6 overflow-auto max-h-[500px]">
         <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ref</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Coluna</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
+            </tr>
+          </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {Object.entries(filledForm).map(([key, value]) => (
-              <tr key={key}>
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{key}</td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{value?.v || ''}</td>
+            {tableData.map((row) => (
+              <tr key={row.ref}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{row.ref}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.column}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{row.value}</td>
               </tr>
             ))}
           </tbody>
@@ -151,27 +162,15 @@ export default function FormProcessor() {
     );
   };
 
-  const renderWordPreview = () => {
-    if (!filledForm) return null;
 
-    return (
-      <div className="bg-white shadow-lg rounded-lg p-6 space-y-4 max-h-[500px] overflow-auto">
-        {Object.entries(filledForm).map(([key, value]) => (
-          <div key={key} className="border-b border-gray-200 pb-2">
-            <span className="font-medium text-gray-700">{key}: </span>
-            <span className="text-gray-600">{value?.v || ''}</span>
-          </div>
-        ))}
-      </div>
-    );
-  };
 
+  
   const renderPDFPreview = () => {
     if (!filledForm) return null;
 
     return (
       <div className="bg-white shadow-lg rounded-lg p-6 space-y-4 max-h-[500px] overflow-auto font-mono text-sm">
-        <pre>
+        <pre className="whitespace-pre-wrap">
           {`UTM
 2.1 MODALIDADE(Se autoconsumo remoto, clicar no botão + a esquerda)
 3.1 TIPO DE CONEXÃO3.2 TIPO DE RAMAL
@@ -550,19 +549,29 @@ COLOCAR $$ NAS CASAS REFERENTES AO PADRÃO PARA COPIAR PARA O SEGUNDO AGRUPAMENT
         <div className="mb-8 bg-white shadow-lg rounded-lg p-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-700">4. Prévia e Download do Formulário</h2>
           <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700">Formato de Visualização:</label>
+            <select 
+              value={previewType} 
+              onChange={(e) => setPreviewType(e.target.value)}
+              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+            >
+              <option value="field-value">Campo - Valor</option>
+              <option value="pdf-format">Formato PDF</option>
+            </select>
+          </div>
+          {previewType === 'field-value' ? renderFieldValuePreview() : renderPDFPreview()}
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-gray-700">Formato de Download:</label>
             <select 
               value={selectedFormat} 
               onChange={(e) => setSelectedFormat(e.target.value)}
-              className="block w-full mt-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50"
+              className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
             >
               <option value="excel">Excel</option>
               <option value="word">Word</option>
               <option value="pdf">PDF</option>
             </select>
           </div>
-          {selectedFormat === 'excel' && renderExcelPreview()}
-          {selectedFormat === 'word' && renderWordPreview()}
-          {selectedFormat === 'pdf' && renderPDFPreview()}
           <div className="mt-6">
             <button 
               onClick={handleDownload}
@@ -575,6 +584,4 @@ COLOCAR $$ NAS CASAS REFERENTES AO PADRÃO PARA COPIAR PARA O SEGUNDO AGRUPAMENT
       )}
     </div>
   );
-
 }
-
